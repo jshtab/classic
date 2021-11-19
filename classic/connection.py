@@ -23,6 +23,8 @@ FullCP437 = Extension("FullCP437")
 MessageTypes = Extension("MessageTypes")
 LongerMessages = Extension("LongerMessages")
 TextColors = Extension("TextColors")
+BlockPermissions = Extension("BlockPermissions")
+PlayerClick = Extension("PlayerClick")
 
 
 NO_VENDOR = "(no vendor)"
@@ -75,7 +77,7 @@ class BaseConnection:
 
     def write_byte(self, x: int) -> None:
         """Write an unsigned 8-bit integer."""
-        buff = x.to_bytes(1, 'big')
+        buff = int.to_bytes(x, 1, 'big')
         self.writer.write(buff)
 
     async def read_short(self) -> int:
@@ -140,11 +142,11 @@ class BaseConnection:
         if FullCP437 in self.extensions:
             self._text_encoding = "cp437"
 
-    def disconnect(self):
+    def close(self):
         self.alive = False
 
     async def handle_unknown(self):
-        self.disconnect()
+        self.close()
 
     async def handle_ext_info(self):
         self.vendor = await self.read_string()
@@ -154,7 +156,7 @@ class BaseConnection:
         ext_name = await self.read_string()
         version = await self.read_int()
         if not self._ext_left:
-            self.disconnect()
+            self.close()
         ext = Extension(ext_name, version)
         self.extensions.add(ext)
         self._ext_left -= 1
@@ -169,8 +171,11 @@ class BaseConnection:
         self.last_opcode = opcode
 
     async def handle_forever(self):
-        while self.alive:
-            await self.handle_next()
+        try:
+            while self.alive:
+                await self.handle_next()
+        except (ConnectionResetError, EOFError):
+            self.close()
 
     @property
     def agent(self):
@@ -221,3 +226,5 @@ OPCODE_ADD_PLAYER = 0x16
 OPCODE_REMOVE_PLAYER = 0x18
 OPCODE_ADD_ENTITY_EXT = 0x21
 OPCODE_SET_TEXT_COLOR = 0x27
+OPCODE_SET_BLOCK_PERMISSION = 0x1C
+OPCODE_CLICK = 0x22

@@ -32,7 +32,7 @@ class ServerConnection:
         """Handle this session changing location"""
         pass
 
-    def send_message(self, message: str):
+    def submit_message(self, message: str):
         """Handle an incoming chat message."""
         pass
 
@@ -52,6 +52,9 @@ class ClientConnection:
 
     def kick(self, message: str):
         """Handle a kick message."""
+        pass
+
+    def set_block_permission(self, block, create: bool, destroy: bool):
         pass
 
     def set_block(self, x: int, y: int, z: int, block: int):

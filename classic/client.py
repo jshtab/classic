@@ -27,10 +27,6 @@ class ServerConnectionHandler(ServerSession, BaseConnection):
         self._last_held = None
         self._partial_message = b''
 
-    @property
-    def ready(self):
-        return self.alive and self.handler is not None
-
     # ServerConnection implementation
 
     def hello(self, username, password):
@@ -69,7 +65,7 @@ class ServerConnectionHandler(ServerSession, BaseConnection):
         self.write_byte(placed)
         self.write_byte(holding)
 
-    def send_message(self, message: str):
+    def submit_message(self, message: str):
         partial = 0
         for chunk in chunked(message, 64):
             self.write_byte(OPCODE_MESSAGE)
@@ -79,17 +75,17 @@ class ServerConnectionHandler(ServerSession, BaseConnection):
 
     # Disconnection
 
-    def disconnect(self):
+    def close(self):
         if self.handler:
             self.handler.disconnect()
-        super().disconnect()
+        super().close()
 
     # Incoming _handlers
 
     async def _handle_kick(self):
         message = await self.read_string()
         self.handler.kick(message)
-        self.disconnect()
+        self.close()
 
     async def _handle_chat_message(self):
         message_type = await self.read_byte()
@@ -160,7 +156,7 @@ class ServerConnectionHandler(ServerSession, BaseConnection):
         self.motd = motd
         self.operator = operator
         if version != 7:
-            self.disconnect()
+            self.close()
         self.handler = self.handler_factory(self)
         self.handler.world_info(name, motd)
 
